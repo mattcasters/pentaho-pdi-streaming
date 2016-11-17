@@ -1,11 +1,11 @@
 package org.pentaho.di.streaming.www.cache;
 
-public class TimedNumberedRow {
+public class StreamingTimedNumberedRow {
   private long id;
   private long time;
   private Object[] row;
 
-  public TimedNumberedRow() {
+  public StreamingTimedNumberedRow() {
     time = System.currentTimeMillis();
   }
 
@@ -14,7 +14,7 @@ public class TimedNumberedRow {
    * @param time
    * @param row
    */
-  public TimedNumberedRow( long id, long time, Object[] row ) {
+  public StreamingTimedNumberedRow( long id, long time, Object[] row ) {
     this.id = id;
     this.time = time;
     this.row = row;
@@ -24,7 +24,7 @@ public class TimedNumberedRow {
    * @param id
    * @param row
    */
-  public TimedNumberedRow( long id, Object[] row ) {
+  public StreamingTimedNumberedRow( long id, Object[] row ) {
     this();
     this.id = id;
     this.row = row;

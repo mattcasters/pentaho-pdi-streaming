@@ -156,8 +156,8 @@ TYPICAL TARGET SEQUENCE
   <property name="javac.deprecation"
             value="true"
             description="Indicates whether source should be compiled with deprecation information" />
-  <property name="javac.source" value="6" description="Provide source compatibility with specified release" />
-  <property name="javac.target" value="6" description="Generate class files for specific VM version" />
+  <property name="javac.source" value="8" description="Provide source compatibility with specified release" />
+  <property name="javac.target" value="8" description="Generate class files for specific VM version" />
   <property name="javac.maxmemory" value="256M" description="Max memory alloted to java compile" />
   <property name="javac.xlint" value="-Xlint:all" />
 
@@ -1156,6 +1156,7 @@ TYPICAL TARGET SEQUENCE
            deprecation="${javac.deprecation}"
            fork="true"
            memorymaximumsize="${javac.maxmemory}"
+           includeantruntime="false"
            source="${javac.source}"
            target="${javac.target}">
       <classpath>
@@ -1358,6 +1359,7 @@ TYPICAL TARGET SEQUENCE
            optimize="false"
            source="${javac.source}"
            target="${javac.target}"
+           includeantruntime="false"
            fork="true">
       <src path="${testsrc.dir}" />
       <classpath refid="test.classpath" />

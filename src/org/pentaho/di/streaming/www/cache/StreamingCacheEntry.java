@@ -8,7 +8,7 @@ import org.pentaho.di.core.row.RowMetaInterface;
 
 public class StreamingCacheEntry {
   private RowMetaInterface rowMeta;
-  private List<TimedNumberedRow> rowData;
+  private List<StreamingTimedNumberedRow> rowData;
 
   public StreamingCacheEntry() {
   }
@@ -17,7 +17,7 @@ public class StreamingCacheEntry {
    * @param rowMeta
    * @param rowData
    */
-  public StreamingCacheEntry( RowMetaInterface rowMeta, List<TimedNumberedRow> rowData ) {
+  public StreamingCacheEntry( RowMetaInterface rowMeta, List<StreamingTimedNumberedRow> rowData ) {
     this();
     this.rowMeta = rowMeta;
     this.rowData = rowData;
@@ -40,14 +40,14 @@ public class StreamingCacheEntry {
   /**
    * @return the rowData
    */
-  public List<TimedNumberedRow> getRowData() {
+  public List<StreamingTimedNumberedRow> getRowData() {
     return rowData;
   }
 
   /**
    * @param rowData the rowData to set
    */
-  public void setRowData( List<TimedNumberedRow> rowData ) {
+  public void setRowData( List<StreamingTimedNumberedRow> rowData ) {
     this.rowData = rowData;
   }
 
@@ -63,22 +63,22 @@ public class StreamingCacheEntry {
    * @param now 
    * @return
    */
-  public List<TimedNumberedRow> findRows( int lastSize, int lastPeriod, long fromId, long toId, int newSize, int maxWait, long now ) {
+  public List<StreamingTimedNumberedRow> findRows( int lastSize, int lastPeriod, long fromId, long toId, int newSize, int maxWait, long now ) {
     synchronized ( rowData ) {
-      Iterator<TimedNumberedRow> iterator = rowData.iterator();
+      Iterator<StreamingTimedNumberedRow> iterator = rowData.iterator();
 
-      List<TimedNumberedRow> rows = new ArrayList<TimedNumberedRow>();
+      List<StreamingTimedNumberedRow> rows = new ArrayList<StreamingTimedNumberedRow>();
 
       if ( fromId > 0 && toId > 0 ) {
         while ( iterator.hasNext() ) {
-          TimedNumberedRow row = iterator.next();
+          StreamingTimedNumberedRow row = iterator.next();
           if ( row.getId() >= fromId && row.getId() <= toId ) {
             rows.add( row );
           }
         }
       } else if ( lastSize > 0 || lastPeriod > 0 ) {
         int size = rowData.size();
-        TimedNumberedRow lastRow = rowData.get( size - 1 );
+        StreamingTimedNumberedRow lastRow = rowData.get( size - 1 );
         long lastId = lastRow.getId();
         long lastTime = lastRow.getTime();
         if ( fromId > 0 && ( newSize > 0 || maxWait > 0 ) ) {
@@ -91,7 +91,7 @@ public class StreamingCacheEntry {
           }
 
           while ( iterator.hasNext() ) {
-            TimedNumberedRow row = iterator.next();
+            StreamingTimedNumberedRow row = iterator.next();
             if ( ( ( startId > 0 && row.getId() > startId )
               || ( ( startTime > 0 ) && row.getTime() > startTime ) ) && ( row.getId() < cutOffId ) ) {
               rows.add( row );
@@ -100,7 +100,7 @@ public class StreamingCacheEntry {
 
         } else {
           while ( iterator.hasNext() ) {
-            TimedNumberedRow row = iterator.next();
+            StreamingTimedNumberedRow row = iterator.next();
             if ( ( lastSize > 0 && row.getId() > lastId - lastSize )
               || ( ( lastPeriod > 0 ) && row.getTime() > lastTime - lastPeriod * 1000 ) ) {
               rows.add( row );
