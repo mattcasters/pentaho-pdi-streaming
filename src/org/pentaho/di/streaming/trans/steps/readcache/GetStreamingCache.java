@@ -53,13 +53,16 @@ public class GetStreamingCache extends BaseStep implements StepInterface {
         data.service = data.factory.loadElement(serviceName);
         
         try {
-          String baseUrl = environmentSubstitute(meta.getServiceUrl());
-          String username = environmentSubstitute(meta.getUsername());
-          String password = environmentSubstitute(meta.getPassword());
           
-          data.streamingCache = data.service.getStreamingCache(log, serviceName, username, password, baseUrl);
+          String slaveName = environmentSubstitute(meta.getSlaveServer());
+          data.slaveServer = getTransMeta().findSlaveServer(slaveName);
+          if (data.slaveServer==null) {
+            throw new KettleException("Unable to find slave server '"+slaveName+"'");
+          }
           
-          log.logBasic("Found "+data.streamingCache.getRowData().size()+" rows in the streaming cache");
+          data.streamingCache = data.service.getStreamingCache(log, serviceName, data.slaveServer);
+          
+          log.logDetailed("Found "+data.streamingCache.size()+" rows in the streaming cache");
         } catch(Exception e) {
           log.logError("Unable to read cache data from the streaming service '"+serviceName+"'", e);
           setErrors(1);
@@ -82,11 +85,13 @@ public class GetStreamingCache extends BaseStep implements StepInterface {
       meta.getFields(data.outputRowMeta, getStepname(), null, null, this, repository, data.store);
     }
     
-    log.logBasic("Streaming row "+(data.rowIndex+1)+"/"+data.streamingCache.getRowData().size());
-    
-    if (data.rowIndex<data.streamingCache.getRowData().size()) {
+    if (data.rowIndex<data.streamingCache.size()) {
+      if (log.isDebug()) {
+        log.logDebug("Streaming row "+(data.rowIndex+1)+"/"+data.streamingCache.size());
+      }
+
       RowMetaInterface stnRowMeta = data.streamingCache.getRowMeta();
-      StreamingTimedNumberedRow stnRow = data.streamingCache.getRowData().get(data.rowIndex);
+      StreamingTimedNumberedRow stnRow = data.streamingCache.getRow(data.rowIndex);
       Object[] stnCacheRow = stnRow.getRow();
       
       data.rowIndex++;

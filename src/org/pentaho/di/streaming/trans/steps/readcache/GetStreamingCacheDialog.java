@@ -1,5 +1,6 @@
 package org.pentaho.di.streaming.trans.steps.readcache;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -41,9 +42,7 @@ public class GetStreamingCacheDialog extends BaseStepDialog implements StepDialo
   private ComboVar wServiceName;
   private TextVar wIdField;
   private TextVar wTimeStampField;
-  private TextVar wBaseUrl;
-  private TextVar wUsername;
-  private TextVar wPassword;
+  private ComboVar wSlaveServer;
   
   public GetStreamingCacheDialog(Shell parent, Object baseStepMeta, TransMeta transMeta, String stepname) {
     super(parent, (BaseStepMeta)baseStepMeta, transMeta, stepname);
@@ -149,63 +148,24 @@ public class GetStreamingCacheDialog extends BaseStepDialog implements StepDialo
     wTimeStampField.setLayoutData( fdTimeStampField );
     lastControl = wTimeStampField;
     
-    // Base URL
+    // Slave Server
     //
-    Label wlBaseUrl = new Label( shell, SWT.RIGHT );
-    wlBaseUrl.setText( BaseMessages.getString( PKG, "GetStreamingCacheDialog.BaseUrl.Label" ) );
-    props.setLook( wlBaseUrl );
-    FormData fdlBaseUrl = new FormData();
-    fdlBaseUrl.left = new FormAttachment( 0, 0 );
-    fdlBaseUrl.right = new FormAttachment( middle, -margin );
-    fdlBaseUrl.top = new FormAttachment( lastControl, margin );
-    wlBaseUrl.setLayoutData( fdlBaseUrl );
-    wBaseUrl = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wBaseUrl );
-    FormData fdBaseUrl = new FormData();
-    fdBaseUrl.left = new FormAttachment( middle, 0 );
-    fdBaseUrl.top = new FormAttachment( lastControl, margin );
-    fdBaseUrl.right = new FormAttachment( 100, 0 );
-    wBaseUrl.setLayoutData( fdBaseUrl );
-    lastControl = wBaseUrl;
-
-    // username
-    //
-    Label wlUsername = new Label( shell, SWT.RIGHT );
-    wlUsername.setText( BaseMessages.getString( PKG, "GetStreamingCacheDialog.Username.Label" ) );
-    props.setLook( wlUsername );
-    FormData fdlUsername = new FormData();
-    fdlUsername.left = new FormAttachment( 0, 0 );
-    fdlUsername.right = new FormAttachment( middle, -margin );
-    fdlUsername.top = new FormAttachment( lastControl, margin );
-    wlUsername.setLayoutData( fdlUsername );
-    wUsername = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wUsername );
-    FormData fdUsername = new FormData();
-    fdUsername.left = new FormAttachment( middle, 0 );
-    fdUsername.top = new FormAttachment( lastControl, margin );
-    fdUsername.right = new FormAttachment( 100, 0 );
-    wUsername.setLayoutData( fdUsername );
-    lastControl = wUsername;
-
-    // password
-    //
-    Label wlPassword = new Label( shell, SWT.RIGHT );
-    wlPassword.setText( BaseMessages.getString( PKG, "GetStreamingCacheDialog.Password.Label" ) );
-    props.setLook( wlPassword );
-    FormData fdlPassword = new FormData();
-    fdlPassword.left = new FormAttachment( 0, 0 );
-    fdlPassword.right = new FormAttachment( middle, -margin );
-    fdlPassword.top = new FormAttachment( lastControl, margin );
-    wlPassword.setLayoutData( fdlPassword );
-    wPassword = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    wPassword.setEchoChar('*');
-    props.setLook( wPassword );
-    FormData fdPassword = new FormData();
-    fdPassword.left = new FormAttachment( middle, 0 );
-    fdPassword.top = new FormAttachment( lastControl, margin );
-    fdPassword.right = new FormAttachment( 100, 0 );
-    wPassword.setLayoutData( fdPassword );
-    lastControl = wPassword;
+    Label wlSlaveServer = new Label( shell, SWT.RIGHT );
+    wlSlaveServer.setText( BaseMessages.getString( PKG, "GetStreamingCacheDialog.SlaveServer.Label" ) );
+    props.setLook( wlSlaveServer );
+    FormData fdlSlaveServer = new FormData();
+    fdlSlaveServer.left = new FormAttachment( 0, 0 );
+    fdlSlaveServer.right = new FormAttachment( middle, -margin );
+    fdlSlaveServer.top = new FormAttachment( lastControl, margin );
+    wlSlaveServer.setLayoutData( fdlSlaveServer );
+    wSlaveServer = new ComboVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wSlaveServer );
+    FormData fdSlaveServer = new FormData();
+    fdSlaveServer.left = new FormAttachment( middle, 0 );
+    fdSlaveServer.top = new FormAttachment( lastControl, margin );
+    fdSlaveServer.right = new FormAttachment( 100, 0 );
+    wSlaveServer.setLayoutData( fdSlaveServer );
+    lastControl = wSlaveServer;
 
     // Some buttons
     wOK = new Button( shell, SWT.PUSH );
@@ -238,9 +198,7 @@ public class GetStreamingCacheDialog extends BaseStepDialog implements StepDialo
     wServiceName.addSelectionListener( lsDef );
     wIdField.addSelectionListener( lsDef );
     wTimeStampField.addSelectionListener( lsDef );
-    wBaseUrl.addSelectionListener( lsDef );
-    wUsername.addSelectionListener( lsDef );
-    wPassword.addSelectionListener( lsDef );
+    wSlaveServer.addSelectionListener( lsDef );
     
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
@@ -278,9 +236,11 @@ public class GetStreamingCacheDialog extends BaseStepDialog implements StepDialo
     wServiceName.setText( Const.NVL(input.getServiceName(), ""));
     wIdField.setText(Const.NVL(input.getIdField(), ""));
     wTimeStampField.setText(Const.NVL(input.getTimestampField(), ""));
-    wBaseUrl.setText(Const.NVL(input.getServiceUrl(), ""));
-    wUsername.setText(Const.NVL(input.getUsername(), ""));
-    wPassword.setText(Const.NVL(input.getPassword(), ""));
+    
+    String[] slaves = transMeta.getSlaveServerNames();
+    Arrays.sort(slaves);
+    wSlaveServer.setItems(slaves);
+    wSlaveServer.setText(Const.NVL(input.getSlaveServer(), ""));
     
     wStepname.selectAll();
     wStepname.setFocus();
@@ -304,9 +264,7 @@ public class GetStreamingCacheDialog extends BaseStepDialog implements StepDialo
     input.setServiceName( wServiceName.getText() );
     input.setIdField( wIdField.getText() );
     input.setTimestampField( wTimeStampField.getText() );
-    input.setServiceUrl( wBaseUrl.getText() );
-    input.setUsername( wUsername.getText() );
-    input.setPassword( wPassword.getText() );
+    input.setSlaveServer( wSlaveServer.getText() );
     
     dispose();
   }

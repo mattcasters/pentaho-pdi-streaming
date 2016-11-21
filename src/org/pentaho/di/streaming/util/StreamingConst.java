@@ -9,9 +9,9 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.metastore.api.IMetaStore;
 
 public class StreamingConst {
-  public static final String REALTIME_GROUP = "Streaming";
-  public static final String REALTIME_SERVICE_NAME = "StreamingServiceName";
-
+  public static final String STREAMING_GROUP = "Streaming";
+  public static final String STREAMING_SERVICE_NAME = "StreamingServiceName";
+  
   public static TransMeta loadTransMeta( Repository repository, IMetaStore metaStore, StreamingService service ) throws KettleException {
     TransMeta transMeta = null;
     if ( repository != null && service.getTransObjectId() != null ) {

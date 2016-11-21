@@ -19,9 +19,6 @@ package org.pentaho.di.streaming.www;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -35,22 +32,16 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.annotations.CarteServlet;
-import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.streaming.StreamingService;
 import org.pentaho.di.streaming.util.StreamingConst;
-import org.pentaho.di.streaming.www.cache.StreamingCache;
-import org.pentaho.di.streaming.www.cache.StreamingCacheEntry;
-import org.pentaho.di.streaming.www.cache.StreamingTimedNumberedRow;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransConfiguration;
 import org.pentaho.di.trans.TransExecutionConfiguration;
 import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.step.RowAdapter;
-import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.www.BaseHttpServlet;
 import org.pentaho.di.www.CarteObjectEntry;
 import org.pentaho.di.www.CartePluginInterface;
@@ -122,7 +113,7 @@ public class ListStreamingServicesServlet extends BaseHttpServlet implements Car
                 for ( CarteObjectEntry entry : transformationObjects ) {
                   Trans trans = transformationMap.getTransformation( entry );
                   if ( trans.isRunning() ) {
-                    String serviceName = trans.getTransMeta().getAttribute( StreamingConst.REALTIME_GROUP, StreamingConst.REALTIME_SERVICE_NAME );
+                    String serviceName = trans.getTransMeta().getAttribute( StreamingConst.STREAMING_GROUP, StreamingConst.STREAMING_SERVICE_NAME );
                     if ( serviceName != null && service.getName().equals( serviceName ) ) {
                       // This streaming service transformation is already running...
                       found = true;
@@ -153,56 +144,25 @@ public class ListStreamingServicesServlet extends BaseHttpServlet implements Car
   protected void startTransformation( Repository repository, IMetaStore metaStore, final StreamingService service ) {
     try {
 
-      final StreamingCache cache = StreamingCache.getInstance();
-
       TransMeta transMeta = StreamingConst.loadTransMeta( repository, metaStore, service );
       Trans trans = new Trans( transMeta );
       String carteObjectId = UUID.randomUUID().toString();
       trans.setContainerObjectId( carteObjectId );
+      
+      if (service.getLogLevel()!=null) {
+        trans.setLogLevel(service.getLogLevel());
+      }
       TransExecutionConfiguration transExecutionConfiguration = new TransExecutionConfiguration();
       TransConfiguration transConfiguration = new TransConfiguration( transMeta, transExecutionConfiguration );
       transformationMap.addTransformation( transMeta.getName(), carteObjectId, trans, transConfiguration );
       trans.prepareExecution( null );
 
-      final int maxSize = Const.toInt( transMeta.environmentSubstitute( service.getCacheSize() ), -1 );
-      final int maxTime = Const.toInt( transMeta.environmentSubstitute( service.getCacheDuration() ), -1 );
-
-      // Which step are we listening to?
-      //
-      StepInterface stepInterface = trans.findStepInterface( service.getStepname(), 0 );
-      stepInterface.addRowListener( new RowAdapter() {
-        @Override
-        public void rowWrittenEvent( RowMetaInterface rowMeta, Object[] row ) throws KettleStepException {
-          StreamingCacheEntry cacheEntry = cache.get( service.getName() );
-          if ( cacheEntry == null ) {
-            List<StreamingTimedNumberedRow> list = Collections.synchronizedList( new LinkedList<StreamingTimedNumberedRow>() );
-            cacheEntry = new StreamingCacheEntry( rowMeta, list );
-            cache.put( service.getName(), cacheEntry );
-          }
-          long now = System.currentTimeMillis();
-          long id = cache.nextValue( service.getName() );
-          List<StreamingTimedNumberedRow> rowList = cacheEntry.getRowData();
-          rowList.add( new StreamingTimedNumberedRow( id, row ) );
-          if ( maxSize > 0 && rowList.size() > maxSize ) {
-            rowList.remove( 0 );
-          }
-          if ( maxTime > 0 ) {
-            long cutOff = now - maxTime * 1000;
-            Iterator<StreamingTimedNumberedRow> iterator = rowList.iterator();
-            while ( iterator.hasNext() ) {
-              StreamingTimedNumberedRow next = iterator.next();
-              if ( next.getTime() < cutOff ) {
-                iterator.remove();
-              } else {
-                break;
-              }
-            }
-          }
-        }
-      } );
+      // Start the transformation
 
       trans.startThreads();
+      
       // This transformation routinely never ends so we won't wait for it...
+      
     } catch ( Exception e ) {
       throw new RuntimeException( "Unable to start transformation for streaming service '" + service.getName() + "'", e );
     }

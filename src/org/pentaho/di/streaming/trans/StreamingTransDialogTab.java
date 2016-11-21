@@ -37,6 +37,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.logging.LogLevel;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.streaming.StreamingService;
 import org.pentaho.di.streaming.util.StreamingConst;
@@ -74,6 +75,8 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
 
   private Button wClearOnStart;
 
+  private CCombo wLogLevel;
+  
   @Override
   public void addTab( final TransMeta transMeta, final Shell shell, final CTabFolder wTabFolder ) {
 
@@ -227,7 +230,31 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
     fdClearOnStart.top = new FormAttachment( lastControl, margin );
     wClearOnStart.setLayoutData( fdClearOnStart );
     lastControl = wClearOnStart;
+    
+    // 
+    // Log Level
+    //
+    Label wlLogLevel = new Label( wStreamingServiceComp, SWT.LEFT );
+    wlLogLevel.setText( BaseMessages.getString( PKG, "TransDialog.LogLevel.Label" ) );
+    wlLogLevel.setToolTipText( BaseMessages.getString( PKG, "TransDialog.LogLevel.Label" ) );
+    props.setLook( wlLogLevel );
+    FormData fdlLogLevel = new FormData();
+    fdlLogLevel.left = new FormAttachment( 0, 0 );
+    fdlLogLevel.right = new FormAttachment( middle, -margin );
+    fdlLogLevel.top = new FormAttachment( lastControl, margin );
+    wlLogLevel.setLayoutData( fdlLogLevel );
+    wLogLevel = new CCombo( wStreamingServiceComp, SWT.LEFT | SWT.BORDER | SWT.SINGLE );
+    wLogLevel.setToolTipText( BaseMessages.getString( PKG, "TransDialog.LogLevel.Tooltip" ) );
+    props.setLook( wLogLevel );
+    FormData fdLogLevel = new FormData();
+    fdLogLevel.left = new FormAttachment( middle, 0 );
+    fdLogLevel.right = new FormAttachment( 100, 0 );
+    fdLogLevel.top = new FormAttachment( lastControl, margin );
+    wLogLevel.setLayoutData( fdLogLevel );
+    wLogLevel.setItems( LogLevel.getLogLevelDescriptions() );
+    lastControl = wLogLevel;
 
+    
     Button wNew = new Button( wStreamingServiceComp, SWT.PUSH );
     props.setLook( wNew );
     wNew.setText( BaseMessages.getString( PKG, "TransDialog.NewServiceButton.Label" ) );
@@ -334,7 +361,7 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
   public void getData( TransMeta transMeta ) throws KettleException {
     try {
 
-      String serviceName = transMeta.getAttribute( StreamingConst.REALTIME_GROUP, StreamingConst.REALTIME_SERVICE_NAME );
+      String serviceName = transMeta.getAttribute( StreamingConst.STREAMING_GROUP, StreamingConst.STREAMING_SERVICE_NAME );
       if ( Const.isEmpty( serviceName ) ) {
         return;
       }
@@ -350,6 +377,8 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
       wServiceCacheSize.setText( Const.NVL( rtService.getCacheSize(), "" ) );
       wPreloadService.setSelection( rtService.isPreloaded() );
       wClearOnStart.setSelection( rtService.isClearingOnStart() );
+      LogLevel logLevel = rtService.getLogLevel()==null ? LogLevel.BASIC : rtService.getLogLevel();
+      wLogLevel.select( logLevel.getLevel() );
 
     } catch ( Exception e ) {
       throw new KettleException( "Unable to load streaming service", e );
@@ -369,6 +398,7 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
       rtService.setCacheSize( wServiceCacheSize.getText() );
       rtService.setPreloaded( wPreloadService.getSelection() );
       rtService.setClearingOnStart( wClearOnStart.getSelection() );
+      rtService.setLogLevel( LogLevel.values()[wLogLevel.getSelectionIndex()] );
 
       rtService.setTransFilename( transMeta.getFilename() );
       Repository repository = transMeta.getRepository();
@@ -383,7 +413,7 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
       MetaStoreFactory<StreamingService> rtFactory = new MetaStoreFactory<StreamingService>( StreamingService.class, transMeta.getMetaStore(), PentahoDefaults.NAMESPACE );
       rtFactory.saveElement( rtService );
 
-      transMeta.setAttribute( StreamingConst.REALTIME_GROUP, StreamingConst.REALTIME_SERVICE_NAME, rtService.getName() );
+      transMeta.setAttribute( StreamingConst.STREAMING_GROUP, StreamingConst.STREAMING_SERVICE_NAME, rtService.getName() );
       transMeta.setChanged();
 
     } catch ( Exception e ) {

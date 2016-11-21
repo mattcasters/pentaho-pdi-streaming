@@ -107,16 +107,16 @@ public class GetStreamingServicesServlet extends BaseHttpServlet implements Cart
         StreamingCache cache = StreamingCache.getInstance();
         StreamingCacheEntry streamingCacheEntry = cache.get( serviceName );
         if ( streamingCacheEntry != null ) {
-          LogChannel.GENERAL.logBasic( "Cache entry of '"+serviceName+"' found");
+          log.logBasic( "Cache entry of '"+serviceName+"' found");
           
           // Now we have a cache entry for the service.
           // Let's get the rows from the cache with the given options...
           //
-          List<StreamingTimedNumberedRow> rows = streamingCacheEntry.findRows( lastSize, lastPeriod, fromId, toId, newSize, maxWait, now );
+          List<StreamingTimedNumberedRow> rows = streamingCacheEntry.findRows( log, lastSize, lastPeriod, fromId, toId, newSize, maxWait, now );
           while ( rows == null ) {
             // Keep retrying with a one second delay until the service transformation has some rows.
             Thread.sleep( 1000 );
-            rows = streamingCacheEntry.findRows( lastSize, lastPeriod, fromId, toId, newSize, maxWait, now );
+            rows = streamingCacheEntry.findRows( log, lastSize, lastPeriod, fromId, toId, newSize, maxWait, now );
           }
           
           LogChannel.GENERAL.logBasic( "Data export for '"+serviceName+"' found, "+rows.size()+" rows found");

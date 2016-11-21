@@ -1,4 +1,4 @@
-package org.pentaho.di.streaming.trans;
+package org.pentaho.di.streaming.xpoint;
 
 import java.util.Collections;
 import java.util.Iterator;
@@ -8,6 +8,7 @@ import java.util.List;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
+import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.extension.ExtensionPoint;
 import org.pentaho.di.core.extension.ExtensionPointInterface;
 import org.pentaho.di.core.logging.LogChannelInterface;
@@ -42,7 +43,7 @@ public class CaptureStreamingRowsExtensionPointPlugin implements ExtensionPointI
     TransMeta transMeta = trans.getTransMeta();
 
     try {
-      String serviceName = transMeta.getAttribute( StreamingConst.REALTIME_GROUP, StreamingConst.REALTIME_SERVICE_NAME );
+      String serviceName = transMeta.getAttribute( StreamingConst.STREAMING_GROUP, StreamingConst.STREAMING_SERVICE_NAME );
       if ( Const.isEmpty( serviceName ) ) {
         return;
       }
@@ -72,6 +73,10 @@ public class CaptureStreamingRowsExtensionPointPlugin implements ExtensionPointI
         public void rowWrittenEvent( RowMetaInterface rowMeta, Object[] row ) throws KettleStepException {
           StreamingCacheEntry cacheEntry = cache.get( service.getName() );
           if ( cacheEntry == null ) {
+            if (log.isDebug()) {
+              log.logDebug("Creating a new streaming cache for service : " + service.getName());
+            }
+
             List<StreamingTimedNumberedRow> list = Collections.synchronizedList( new LinkedList<StreamingTimedNumberedRow>() );
             cacheEntry = new StreamingCacheEntry( rowMeta, list );
             cache.put( service.getName(), cacheEntry );
@@ -79,14 +84,24 @@ public class CaptureStreamingRowsExtensionPointPlugin implements ExtensionPointI
           cacheEntry.setRowMeta( rowMeta );
           long now = System.currentTimeMillis();
           long id = cache.nextValue( service.getName() );
-          List<StreamingTimedNumberedRow> rowList = cacheEntry.getRowData();
-          rowList.add( new StreamingTimedNumberedRow( id, row ) );
-          while ( maxSize > 0 && rowList.size() > maxSize ) {
-            rowList.remove( 0 );
+          try {
+            if (log.isDebug()) {
+              log.logDebug("Adding row to cache : " + rowMeta.getString(row) + " buffer size : " + cacheEntry.size());
+            }
+          } catch (KettleValueException e) {
+            throw new KettleStepException(e);
+          }
+          cacheEntry.addRow(new StreamingTimedNumberedRow( id, row ));
+          
+          while ( maxSize > 0 && cacheEntry.size() > maxSize ) {
+            cacheEntry.removeFirst();
+            if (log.isDebug()) {
+              log.logDebug("Removed a row from cache : new buffer size : " + cacheEntry.size());
+            }
           }
           if ( maxTime > 0 ) {
             long cutOff = now - maxTime * 1000;
-            Iterator<StreamingTimedNumberedRow> iterator = rowList.iterator();
+            Iterator<StreamingTimedNumberedRow> iterator = cacheEntry.getIterator();
             while ( iterator.hasNext() ) {
               StreamingTimedNumberedRow next = iterator.next();
               if ( next.getTime() < cutOff ) {
@@ -94,6 +109,9 @@ public class CaptureStreamingRowsExtensionPointPlugin implements ExtensionPointI
               } else {
                 break;
               }
+            }
+            if (log.isDebug()) {
+              log.logDebug("Pruned by max time window ("+maxTime+") from ["+service.getCacheDuration()+"] : new buffer size : " + cacheEntry.size());
             }
           }
         }

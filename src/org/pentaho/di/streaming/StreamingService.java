@@ -9,14 +9,17 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScope;
 import org.apache.commons.httpclient.methods.GetMethod;
+import org.pentaho.di.cluster.SlaveServer;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogChannelInterface;
+import org.pentaho.di.core.logging.LogLevel;
 import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.di.repository.RepositoryDirectoryInterface;
+import org.pentaho.di.streaming.www.GetStreamingServicesServlet;
 import org.pentaho.di.streaming.www.cache.StreamingCacheEntry;
 import org.pentaho.di.streaming.www.cache.StreamingTimedNumberedRow;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
@@ -49,8 +52,12 @@ public class StreamingService {
 
   @MetaStoreAttribute( key = "clear_cache_on_start" )
   protected boolean clearingOnStart;
+  
+  @MetaStoreAttribute( key = "logging_level" )
+  protected LogLevel logLevel;
 
   public StreamingService() {
+    logLevel = LogLevel.BASIC;
   }
 
   /**
@@ -217,14 +224,16 @@ public class StreamingService {
    * @param baseUrl
    * @return
    */
-  public StreamingCacheEntry getStreamingCache(LogChannelInterface log, String serviceName, String username, String password, String baseUrl) throws KettleException {
+  public StreamingCacheEntry getStreamingCache(LogChannelInterface log, String serviceName, SlaveServer slaveServer) throws KettleException {
     
     StreamingCacheEntry entry = new StreamingCacheEntry();
-    
-    String url = baseUrl+"?service="+serviceName+"&binary=true";
     HttpClient client = new HttpClient();
+    String url = null;
     URI uri = null;
+    
     try {
+      url = slaveServer.constructUrl(GetStreamingServicesServlet.CONTEXT_PATH+"?service="+serviceName+"&binary=true");
+      
       uri = new URI(url);
     } catch(Exception e) {
       throw new KettleException("Unable to parse URL : '"+url+"'", e);
@@ -237,7 +246,7 @@ public class StreamingService {
       
       // Authenticate
       //
-      Credentials credentials = new UsernamePasswordCredentials(username, password);
+      Credentials credentials = new UsernamePasswordCredentials(slaveServer.getUsername(), slaveServer.getPassword());
       AuthScope authScope = new AuthScope(uri.getHost(), uri.getPort());
       client.getState().setCredentials(authScope, credentials);
       
@@ -265,7 +274,6 @@ public class StreamingService {
       
       // Read the rows...
       //
-      entry.setRowData(new ArrayList<StreamingTimedNumberedRow>());
       for (int i=0;i<nrRows;i++) {
         // The id
         //
@@ -277,7 +285,7 @@ public class StreamingService {
         Object[] rowData = rowMeta.readData(dis);
         
         StreamingTimedNumberedRow row = new StreamingTimedNumberedRow(id, time, rowData);
-        entry.getRowData().add(row);    
+        entry.addRow(row);    
       }
       
       // The last of the stream we don't use (yet) but we just read it...
@@ -301,6 +309,14 @@ public class StreamingService {
       //
       getMethod.releaseConnection();
     }
+  }
+
+  public LogLevel getLogLevel() {
+    return logLevel;
+  }
+
+  public void setLogLevel(LogLevel logLevel) {
+    this.logLevel = logLevel;
   }
 
   
