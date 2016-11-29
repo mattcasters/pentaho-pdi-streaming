@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.UUID;
 
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
@@ -19,6 +20,7 @@ import org.pentaho.di.streaming.www.cache.StreamingCache;
 import org.pentaho.di.streaming.www.cache.StreamingCacheEntry;
 import org.pentaho.di.streaming.www.cache.StreamingTimedNumberedRow;
 import org.pentaho.di.trans.Trans;
+import org.pentaho.di.trans.TransAdapter;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.RowAdapter;
 import org.pentaho.di.trans.step.StepInterface;
@@ -58,10 +60,18 @@ public class CaptureStreamingRowsExtensionPointPlugin implements ExtensionPointI
       }
       final StreamingCache cache = StreamingCache.getInstance();
 
-      if ( service.isClearingOnStart() ) {
-        cache.getCache().remove( service.getName() );
+      final String cacheName;
+      if (service.isCacheFlipping()) {
+        cacheName = service.getName()+"-temp-"+UUID.randomUUID();
+        log.logBasic("Cache flipping transformation, temporary cache is : "+cacheName);
+      } else {
+        cacheName = service.getName();    
       }
 
+      if ( service.isClearingOnStart() ) {
+        cache.getCache().remove( cacheName );
+      }
+      
       final int maxSize = Const.toInt( transMeta.environmentSubstitute( service.getCacheSize() ), -1 );
       final int maxTime = Const.toInt( transMeta.environmentSubstitute( service.getCacheDuration() ), -1 );
 
@@ -71,7 +81,7 @@ public class CaptureStreamingRowsExtensionPointPlugin implements ExtensionPointI
       stepInterface.addRowListener( new RowAdapter() {
         @Override
         public void rowWrittenEvent( RowMetaInterface rowMeta, Object[] row ) throws KettleStepException {
-          StreamingCacheEntry cacheEntry = cache.get( service.getName() );
+          StreamingCacheEntry cacheEntry = cache.get( cacheName );
           if ( cacheEntry == null ) {
             if (log.isDebug()) {
               log.logDebug("Creating a new streaming cache for service : " + service.getName());
@@ -79,7 +89,7 @@ public class CaptureStreamingRowsExtensionPointPlugin implements ExtensionPointI
 
             List<StreamingTimedNumberedRow> list = Collections.synchronizedList( new LinkedList<StreamingTimedNumberedRow>() );
             cacheEntry = new StreamingCacheEntry( rowMeta, list );
-            cache.put( service.getName(), cacheEntry );
+            cache.put( cacheName, cacheEntry );             
           }
           cacheEntry.setRowMeta( rowMeta );
           long now = System.currentTimeMillis();
@@ -116,6 +126,31 @@ public class CaptureStreamingRowsExtensionPointPlugin implements ExtensionPointI
           }
         }
       } );
+      
+      // Do we need to flip the cache at the end of the transformation?
+      //
+      if (service.isCacheFlipping()) {
+        trans.addTransListener(new TransAdapter() {
+          @Override
+          public void transFinished(Trans trans) throws KettleException {
+            synchronized(cache) {
+              
+              log.logBasic("Replacing cache for '"+serviceName+"' with cache '"+cacheName+"'");
+              
+              StreamingCacheEntry newCacheEntry = cache.getCache().get(cacheName);
+
+              // Remove the old cache...
+              // And the temporary one...
+              //
+              cache.getCache().remove(cacheName);
+              
+              // Replace/flip with the new cache...
+              //
+              cache.getCache().put(serviceName, newCacheEntry);
+            }
+          }
+        });
+      }
 
     } catch ( Exception e ) {
       throw new KettleException( "Unable to capture streaming rows of transformation '" + transMeta.getName() + "'", e );

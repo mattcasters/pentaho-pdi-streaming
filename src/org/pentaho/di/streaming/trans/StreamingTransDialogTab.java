@@ -75,6 +75,8 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
 
   private Button wClearOnStart;
 
+  private Button wReplaceAtTransEnd;
+
   private CCombo wLogLevel;
   
   @Override
@@ -93,10 +95,10 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
     Composite wStreamingServiceComp = new Composite( wTabFolder, SWT.NONE );
     props.setLook( wStreamingServiceComp );
 
-    FormLayout rtServiceLayout = new FormLayout();
-    rtServiceLayout.marginWidth = Const.FORM_MARGIN;
-    rtServiceLayout.marginHeight = Const.FORM_MARGIN;
-    wStreamingServiceComp.setLayout( rtServiceLayout );
+    FormLayout streamingServiceLayout = new FormLayout();
+    streamingServiceLayout.marginWidth = Const.FORM_MARGIN;
+    streamingServiceLayout.marginHeight = Const.FORM_MARGIN;
+    wStreamingServiceComp.setLayout( streamingServiceLayout );
 
     // 
     // Service name
@@ -196,6 +198,7 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
     //
     Label wlPreloadService = new Label( wStreamingServiceComp, SWT.LEFT );
     wlPreloadService.setText( BaseMessages.getString( PKG, "TransDialog.PreloadService.Label" ) );
+    wlPreloadService.setToolTipText( BaseMessages.getString( PKG, "TransDialog.PreloadService.Tooltip" ) );
     props.setLook( wlPreloadService );
     FormData fdlPreloadService = new FormData();
     fdlPreloadService.left = new FormAttachment( 0, 0 );
@@ -203,6 +206,7 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
     fdlPreloadService.top = new FormAttachment( lastControl, margin );
     wlPreloadService.setLayoutData( fdlPreloadService );
     wPreloadService = new Button( wStreamingServiceComp, SWT.CHECK );
+    wPreloadService.setToolTipText( BaseMessages.getString( PKG, "TransDialog.PreloadService.Tooltip" ) );
     props.setLook( wPreloadService );
     FormData fdPreloadService = new FormData();
     fdPreloadService.left = new FormAttachment( middle, 0 );
@@ -216,6 +220,7 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
     //
     Label wlClearOnStart = new Label( wStreamingServiceComp, SWT.LEFT );
     wlClearOnStart.setText( BaseMessages.getString( PKG, "TransDialog.ClearOnStart.Label" ) );
+    wlClearOnStart.setToolTipText( BaseMessages.getString( PKG, "TransDialog.ClearOnStart.Tooltip" ) );
     props.setLook( wlClearOnStart );
     FormData fdlClearOnStart = new FormData();
     fdlClearOnStart.left = new FormAttachment( 0, 0 );
@@ -223,6 +228,7 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
     fdlClearOnStart.top = new FormAttachment( lastControl, margin );
     wlClearOnStart.setLayoutData( fdlClearOnStart );
     wClearOnStart = new Button( wStreamingServiceComp, SWT.CHECK );
+    wClearOnStart.setToolTipText( BaseMessages.getString( PKG, "TransDialog.ClearOnStart.Tooltip" ) );
     props.setLook( wClearOnStart );
     FormData fdClearOnStart = new FormData();
     fdClearOnStart.left = new FormAttachment( middle, 0 );
@@ -231,6 +237,28 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
     wClearOnStart.setLayoutData( fdClearOnStart );
     lastControl = wClearOnStart;
     
+    // 
+    // Replace cache content at end of transformation?
+    //
+    Label wlReplaceAtTransEnd = new Label( wStreamingServiceComp, SWT.LEFT );
+    wlReplaceAtTransEnd.setText( BaseMessages.getString( PKG, "TransDialog.ReplaceAtTransEnd.Label" ) );
+    wlReplaceAtTransEnd.setToolTipText(BaseMessages.getString( PKG, "TransDialog.ReplaceAtTransEnd.Tooltip" ) );
+    props.setLook( wlReplaceAtTransEnd );
+    FormData fdlReplaceAtTransEnd = new FormData();
+    fdlReplaceAtTransEnd.left = new FormAttachment( 0, 0 );
+    fdlReplaceAtTransEnd.right = new FormAttachment( middle, -margin );
+    fdlReplaceAtTransEnd.top = new FormAttachment( lastControl, margin );
+    wlReplaceAtTransEnd.setLayoutData( fdlReplaceAtTransEnd );
+    wReplaceAtTransEnd = new Button( wStreamingServiceComp, SWT.CHECK );
+    wReplaceAtTransEnd.setToolTipText(BaseMessages.getString( PKG, "TransDialog.ReplaceAtTransEnd.Tooltip" ) );
+    props.setLook( wReplaceAtTransEnd );
+    FormData fdReplaceAtTransEnd = new FormData();
+    fdReplaceAtTransEnd.left = new FormAttachment( middle, 0 );
+    fdReplaceAtTransEnd.right = new FormAttachment( 100, 0 );
+    fdReplaceAtTransEnd.top = new FormAttachment( lastControl, margin );
+    wReplaceAtTransEnd.setLayoutData( fdReplaceAtTransEnd );
+    lastControl = wReplaceAtTransEnd;
+ 
     // 
     // Log Level
     //
@@ -366,18 +394,19 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
         return;
       }
       MetaStoreFactory<StreamingService> rtFactory = new MetaStoreFactory<StreamingService>( StreamingService.class, transMeta.getMetaStore(), PentahoDefaults.NAMESPACE );
-      StreamingService rtService = rtFactory.loadElement( serviceName );
-      if ( rtService == null ) {
+      StreamingService streamingService = rtFactory.loadElement( serviceName );
+      if ( streamingService == null ) {
         return;
       }
 
-      wServiceName.setText( Const.NVL( rtService.getName(), "" ) );
-      wServiceStep.setText( Const.NVL( rtService.getStepname(), "" ) );
-      wServiceCacheDuration.setText( Const.NVL( rtService.getCacheDuration(), "" ) );
-      wServiceCacheSize.setText( Const.NVL( rtService.getCacheSize(), "" ) );
-      wPreloadService.setSelection( rtService.isPreloaded() );
-      wClearOnStart.setSelection( rtService.isClearingOnStart() );
-      LogLevel logLevel = rtService.getLogLevel()==null ? LogLevel.BASIC : rtService.getLogLevel();
+      wServiceName.setText( Const.NVL( streamingService.getName(), "" ) );
+      wServiceStep.setText( Const.NVL( streamingService.getStepname(), "" ) );
+      wServiceCacheDuration.setText( Const.NVL( streamingService.getCacheDuration(), "" ) );
+      wServiceCacheSize.setText( Const.NVL( streamingService.getCacheSize(), "" ) );
+      wPreloadService.setSelection( streamingService.isPreloaded() );
+      wClearOnStart.setSelection( streamingService.isClearingOnStart() );
+      wReplaceAtTransEnd.setSelection(streamingService.isCacheFlipping());
+      LogLevel logLevel = streamingService.getLogLevel()==null ? LogLevel.BASIC : streamingService.getLogLevel();
       wLogLevel.select( logLevel.getLevel() );
 
     } catch ( Exception e ) {
@@ -391,29 +420,30 @@ public class StreamingTransDialogTab implements TransDialogPluginInterface {
     try {
       // Get streaming service details...
       //
-      StreamingService rtService = new StreamingService();
-      rtService.setName( wServiceName.getText() );
-      rtService.setStepname( wServiceStep.getText() );
-      rtService.setCacheDuration( wServiceCacheDuration.getText() );
-      rtService.setCacheSize( wServiceCacheSize.getText() );
-      rtService.setPreloaded( wPreloadService.getSelection() );
-      rtService.setClearingOnStart( wClearOnStart.getSelection() );
-      rtService.setLogLevel( LogLevel.values()[wLogLevel.getSelectionIndex()] );
+      StreamingService streamingService = new StreamingService();
+      streamingService.setName( wServiceName.getText() );
+      streamingService.setStepname( wServiceStep.getText() );
+      streamingService.setCacheDuration( wServiceCacheDuration.getText() );
+      streamingService.setCacheSize( wServiceCacheSize.getText() );
+      streamingService.setPreloaded( wPreloadService.getSelection() );
+      streamingService.setClearingOnStart( wClearOnStart.getSelection() );
+      streamingService.setCacheFlipping(wReplaceAtTransEnd.getSelection());
+      streamingService.setLogLevel( LogLevel.values()[wLogLevel.getSelectionIndex()] );
 
-      rtService.setTransFilename( transMeta.getFilename() );
+      streamingService.setTransFilename( transMeta.getFilename() );
       Repository repository = transMeta.getRepository();
       if ( repository != null ) {
         if ( repository.getRepositoryMeta().getRepositoryCapabilities().supportsReferences() ) {
           ObjectId objectId = transMeta.getObjectId();
-          rtService.setTransObjectId( objectId == null ? null : objectId.getId() );
+          streamingService.setTransObjectId( objectId == null ? null : objectId.getId() );
         }
-        rtService.setTransRepositoryPath( transMeta.getRepositoryDirectory().getPath() + "/" + transMeta.getName() );
+        streamingService.setTransRepositoryPath( transMeta.getRepositoryDirectory().getPath() + "/" + transMeta.getName() );
       }
 
       MetaStoreFactory<StreamingService> rtFactory = new MetaStoreFactory<StreamingService>( StreamingService.class, transMeta.getMetaStore(), PentahoDefaults.NAMESPACE );
-      rtFactory.saveElement( rtService );
+      rtFactory.saveElement( streamingService );
 
-      transMeta.setAttribute( StreamingConst.STREAMING_GROUP, StreamingConst.STREAMING_SERVICE_NAME, rtService.getName() );
+      transMeta.setAttribute( StreamingConst.STREAMING_GROUP, StreamingConst.STREAMING_SERVICE_NAME, streamingService.getName() );
       transMeta.setChanged();
 
     } catch ( Exception e ) {

@@ -178,6 +178,8 @@ public class ListStreamingServicesServlet extends BaseHttpServlet implements Car
       return;
     }
 
+    String serviceName = request.getParameter( "service" );
+    
     response.setStatus( HttpServletResponse.SC_OK );
 
     response.setContentType( "application/json" );
@@ -196,7 +198,12 @@ public class ListStreamingServicesServlet extends BaseHttpServlet implements Car
       List<StreamingService> rtServices = rtFactory.getElements();
       for ( StreamingService rtService : rtServices ) {
         if ( !Const.isEmpty( rtService.getName() ) && !Const.isEmpty( rtService.getStepname() ) ) {
-
+          
+          if (!Const.isEmpty(serviceName)) {
+            if (!rtService.getName().equalsIgnoreCase(serviceName)) {
+              continue;
+            }
+          }
           rtService.lookupTransObjectId( repository );
           if ( !Const.isEmpty( rtService.getTransFilename() ) || rtService.getTransObjectId() != null ) {
             if ( Const.isEmpty( rtService.getStepname() ) ) {

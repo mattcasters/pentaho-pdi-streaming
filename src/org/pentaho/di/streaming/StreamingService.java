@@ -2,7 +2,6 @@ package org.pentaho.di.streaming;
 
 import java.io.DataInputStream;
 import java.net.URI;
-import java.util.ArrayList;
 
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.HttpClient;
@@ -55,6 +54,10 @@ public class StreamingService {
   
   @MetaStoreAttribute( key = "logging_level" )
   protected LogLevel logLevel;
+  
+  @MetaStoreAttribute( key = "trans_end_cache_flip" )
+  protected boolean cacheFlipping;
+  
 
   public StreamingService() {
     logLevel = LogLevel.BASIC;
@@ -317,6 +320,14 @@ public class StreamingService {
 
   public void setLogLevel(LogLevel logLevel) {
     this.logLevel = logLevel;
+  }
+
+  public boolean isCacheFlipping() {
+    return cacheFlipping;
+  }
+
+  public void setCacheFlipping(boolean cacheFlipping) {
+    this.cacheFlipping = cacheFlipping;
   }
 
   
