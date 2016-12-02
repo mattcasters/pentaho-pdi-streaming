@@ -8,6 +8,7 @@ import org.pentaho.di.core.row.RowMeta;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.metastore.MetaStoreConst;
 import org.pentaho.di.streaming.StreamingService;
+import org.pentaho.di.streaming.www.cache.StreamingCache;
 import org.pentaho.di.streaming.www.cache.StreamingTimedNumberedRow;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
@@ -49,19 +50,35 @@ public class GetStreamingCache extends BaseStep implements StepInterface {
       
         String serviceName = environmentSubstitute(meta.getServiceName());
         
-        data.factory = new MetaStoreFactory<StreamingService>(StreamingService.class, data.store, PentahoDefaults.NAMESPACE);
-        data.service = data.factory.loadElement(serviceName);
-        
         try {
           
-          String slaveName = environmentSubstitute(meta.getSlaveServer());
-          data.slaveServer = getTransMeta().findSlaveServer(slaveName);
-          if (data.slaveServer==null) {
-            throw new KettleException("Unable to find slave server '"+slaveName+"'");
+          // Test for container object ID to see if we run on Carte
+          //
+          if (getTrans().getContainerObjectId()!=null) {
+            // We run on Carte, grab the cache directly
+            //
+            log.logBasic("We are running on a server, let's try to find the cache directly...");
+            data.streamingCache = StreamingCache.getInstance().get(serviceName);
+            if (data.streamingCache!=null) {
+              log.logBasic("Streaming cache for service '"+serviceName+"' found directly on the server");
+            }
           }
           
-          data.streamingCache = data.service.getStreamingCache(log, serviceName, data.slaveServer);
-          
+          // Use the web service
+          //
+          if (data.streamingCache==null) {
+            data.factory = new MetaStoreFactory<StreamingService>(StreamingService.class, data.store, PentahoDefaults.NAMESPACE);
+            data.service = data.factory.loadElement(serviceName);
+            
+            String slaveName = environmentSubstitute(meta.getSlaveServer());
+            data.slaveServer = getTransMeta().findSlaveServer(slaveName);
+            if (data.slaveServer==null) {
+              throw new KettleException("Unable to find slave server '"+slaveName+"'");
+            }
+            
+            data.streamingCache = data.service.getStreamingCache(log, serviceName, data.slaveServer);
+            log.logBasic("Streaming cache for service '"+serviceName+"' found through a web service call");
+          }
           log.logDetailed("Found "+data.streamingCache.size()+" rows in the streaming cache");
         } catch(Exception e) {
           log.logError("Unable to read cache data from the streaming service '"+serviceName+"'", e);
